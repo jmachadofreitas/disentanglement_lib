@@ -24,6 +24,8 @@ from disentanglement_lib.methods.semi_supervised import semi_supervised_vae  # p
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+tf.compat.v1.disable_eager_execution()
+
 
 class S2VaeTest(parameterized.TestCase, tf.test.TestCase):
 

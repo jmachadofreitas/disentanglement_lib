@@ -227,8 +227,8 @@ def supervised_regularizer_l2(representation, labels,
   Returns:
     L2 loss between the representation and the labels.
   """
-  number_latents = representation.shape[1].value
-  number_factors_of_variations = labels.shape[1].value
+  number_latents = representation.shape[1]#.value
+  number_factors_of_variations = labels.shape[1]#.value
   assert number_latents >= number_factors_of_variations, "Not enough latents."
   if learn_scale:
     b = tf.get_variable("b", initializer=tf.constant(1.))
@@ -260,8 +260,8 @@ def supervised_regularizer_xent(representation, labels,
   Returns:
     Xent loss between the representation and the labels.
   """
-  number_latents = representation.shape[1].value
-  number_factors_of_variations = labels.shape[1].value
+  number_latents = representation.shape[1]#.value
+  number_factors_of_variations = labels.shape[1]#.value
   assert number_latents >= number_factors_of_variations, "Not enough latents."
   return tf.reduce_sum(
       tf.nn.sigmoid_cross_entropy_with_logits(
@@ -290,8 +290,8 @@ def supervised_regularizer_cov(representation, labels,
     Loss between the representation and the labels.
   """
   del factor_sizes
-  number_latents = representation.shape[1].value
-  number_factors_of_variations = labels.shape[1].value
+  number_latents = representation.shape[1]#.value
+  number_factors_of_variations = labels.shape[1]#.value
   num_diagonals = tf.math.minimum(number_latents, number_factors_of_variations)
   expectation_representation = tf.reduce_mean(representation, axis=0)
   expectation_labels = tf.reduce_mean(labels, axis=0)
@@ -334,7 +334,7 @@ def supervised_regularizer_embed(representation, labels,
     Supervised loss based on the softmax between embedded labels and
     representation.
   """
-  number_factors_of_variations = labels.shape[1].value
+  number_factors_of_variations = labels.shape[1]#.value
   supervised_representation = representation[:, :number_factors_of_variations]
   loss = []
   for i in range(number_factors_of_variations):

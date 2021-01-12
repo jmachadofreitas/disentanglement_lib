@@ -20,8 +20,8 @@ from __future__ import print_function
 from disentanglement_lib.evaluation.abstract_reasoning import relational_layers
 import gin
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.estimator import tpu
 import tensorflow_hub as hub
-from tensorflow.contrib import tpu as contrib_tpu
 
 
 @gin.configurable
@@ -110,7 +110,7 @@ class TwoStageModel(object):
                 tf.metrics.accuracy(labels=labels, predictions=predictions),
         }
 
-      return contrib_tpu.TPUEstimatorSpec(
+      return tpu.TPUEstimatorSpec(
           mode=mode, loss=loss_mean, eval_metrics=(metric_fn, [labels, logits]))
 
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -119,7 +119,7 @@ class TwoStageModel(object):
         optimizer = self.optimizer_fn()
         train_op = optimizer.minimize(
             loss=loss_mean, global_step=tf.train.get_global_step())
-      return contrib_tpu.TPUEstimatorSpec(
+      return tpu.TPUEstimatorSpec(
           mode=mode, loss=loss_mean, train_op=train_op)
     raise NotImplementedError("Unsupported mode.")
 

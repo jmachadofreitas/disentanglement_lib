@@ -25,6 +25,7 @@ import tensorflow.compat.v1 as tf
 import gin.tf.external_configurables  # pylint: disable=unused-import
 import gin.tf
 
+tf.compat.v1.disable_eager_execution()
 
 def _make_vae_optimizer_configs():
   """Yield different vae_optimizer test configurations.
@@ -39,6 +40,7 @@ def _make_vae_optimizer_configs():
       "GradientDescentOptimizer.learning_rate = 0.1",
   ]
   yield (bindings, 0.1)
+
 
   # Constant learning rate specified in vae_optimizer.
   bindings = [
@@ -71,6 +73,7 @@ class OptimizerTest(parameterized.TestCase, tf.test.TestCase):
 
   @parameterized.parameters(list(_make_vae_optimizer_configs()))
   def test_vae_optimizer(self, gin_bindings, expected_learning_rate):
+    gin.clear_config()
     gin.parse_config_files_and_bindings([], gin_bindings)
 
     with self.test_session():

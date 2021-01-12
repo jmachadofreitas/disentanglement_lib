@@ -25,6 +25,8 @@ import numpy as np
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
+tf.compat.v1.disable_eager_execution()
+
 
 class UtilTest(parameterized.TestCase, tf.test.TestCase):
 

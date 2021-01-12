@@ -19,7 +19,62 @@ from __future__ import division
 from __future__ import print_function
 import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
-from tensorflow.contrib import framework as contrib_framework
+
+# Replace: from tensorflow.contrib import framework as contrib_framework
+from tensorflow.python import pywrap_tensorflow
+from tensorflow.python.training import saver as tf_saver
+from tensorflow.core.protobuf import saver_pb2
+from tensorflow.python.platform import tf_logging as logging
+
+
+def assign_from_checkpoint_fn(model_path, var_list, ignore_missing_vars=False,
+                              reshape_variables=False):
+  """Returns a function that assigns specific variables from a checkpoint.
+  If ignore_missing_vars is True and no variables are found in the checkpoint
+  it returns None.
+  Args:
+    model_path: The full path to the model checkpoint. To get latest checkpoint
+        use `model_path = tf.train.latest_checkpoint(checkpoint_dir)`
+    var_list: A list of `Variable` objects or a dictionary mapping names in the
+        checkpoint to the corresponding variables to initialize. If empty or
+        `None`, it would return `no_op(), None`.
+    ignore_missing_vars: Boolean, if True it would ignore variables missing in
+        the checkpoint with a warning instead of failing.
+    reshape_variables: Boolean, if True it would automatically reshape variables
+        which are of different shape then the ones stored in the checkpoint but
+        which have the same number of elements.
+  Returns:
+    A function that takes a single argument, a `tf.Session`, that applies the
+    assignment operation. If no matching variables were found in the checkpoint
+    then `None` is returned.
+  Raises:
+    ValueError: If var_list is empty.
+  """
+  if not var_list:
+    raise ValueError('var_list cannot be empty')
+  if ignore_missing_vars:
+    reader = pywrap_tensorflow.NewCheckpointReader(model_path)
+    if isinstance(var_list, dict):
+      var_dict = var_list
+    else:
+      var_dict = {var.op.name: var for var in var_list}
+    available_vars = {}
+    for var in var_dict:
+      if reader.has_tensor(var):
+        available_vars[var] = var_dict[var]
+      else:
+        logging.warning(
+            'Variable %s missing in checkpoint %s', var, model_path)
+    var_list = available_vars
+  if var_list:
+    saver = tf_saver.Saver(var_list, reshape=reshape_variables,
+                           write_version=saver_pb2.SaverDef.V1)
+    def callback(session):
+      saver.restore(session, model_path)
+    return callback
+  else:
+    logging.warning('No Variables to restore')
+    return None
 
 
 def convolute_and_save(module_path, signature, export_path, transform_fn,
@@ -67,7 +122,7 @@ def convolute_and_save(module_path, signature, export_path, transform_fn,
         if k.startswith(prefix)
     }
     if transform_variables:
-      init_fn = contrib_framework.assign_from_checkpoint_fn(
+      init_fn = assign_from_checkpoint_fn(
           transform_checkpoint_path, transform_variables)
 
     with tf.Session() as sess:

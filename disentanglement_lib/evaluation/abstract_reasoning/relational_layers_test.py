@@ -23,6 +23,8 @@ from disentanglement_lib.evaluation.abstract_reasoning import relational_layers
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+tf.compat.v1.disable_eager_execution()
+
 
 def _create_positional_encoding_matrices():
   """Shared input/output pair for the positional encoding tests."""

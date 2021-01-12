@@ -27,8 +27,9 @@ from disentanglement_lib.methods.semi_supervised import train_semi_supervised_li
 import numpy as np
 from six.moves import range
 import tensorflow.compat.v1 as tf
-
 import gin.tf
+
+tf.compat.v1.disable_eager_execution()
 
 
 class SemiSupervisedDataTest(parameterized.TestCase, tf.test.TestCase):

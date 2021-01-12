@@ -23,6 +23,8 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
 
+tf.compat.v1.disable_eager_execution()
+
 
 class ConvoluteHubTest(tf.test.TestCase):
 

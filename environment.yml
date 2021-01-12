@@ -1,0 +1,20 @@
+name: tf2
+channels:
+    - conda-forge
+    - defaults
+dependencies:
+    - python=3.8
+    - jupyter
+    - matplotlib
+    - scipy
+    - scikit-learn
+    - imageio
+    - simplejson
+    - pandas
+    - seaborn
+    - pip
+    - pip:
+        - tensorflow
+        - tensorflow-probability
+        - tensorflow-hub
+        - gin-config

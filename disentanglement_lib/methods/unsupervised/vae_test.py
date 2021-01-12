@@ -24,6 +24,9 @@ import tensorflow.compat.v1 as tf
 import gin.tf.external_configurables  # pylint: disable=unused-import
 
 
+tf.compat.v1.disable_eager_execution()
+
+
 def _make_symmetric_psd(matrix):
   return 0.5 * (matrix + matrix.T) + np.diag(np.ones(10)) * 10.
 

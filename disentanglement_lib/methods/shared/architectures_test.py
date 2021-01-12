@@ -22,6 +22,8 @@ from disentanglement_lib.methods.shared import architectures
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+tf.compat.v1.disable_eager_execution()
+
 
 class ArchitecturesTest(parameterized.TestCase, tf.test.TestCase):
 
@@ -60,6 +62,7 @@ class ArchitecturesTest(parameterized.TestCase, tf.test.TestCase):
     with self.test_session() as sess:
       sess.run(tf.initialize_all_variables())
       sess.run([logits, probs], feed_dict={input_tensor: images})
+
 
 if __name__ == '__main__':
   tf.test.main()
