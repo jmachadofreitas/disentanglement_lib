@@ -99,8 +99,7 @@ class S2VaeTest(parameterized.TestCase, tf.test.TestCase):
                                                          samples))
       self.assertBetween(test_value, target_low, target_high)
 
-  @parameterized.parameters(
-      (0.2, 0.6, 0.7))
+  @parameterized.parameters((0.2, 0.6, 0.7))
   # The real mutual information for this test case is about 0.6589.
   # Mine is noisy.
   def test_mine(self, var, target_low, target_high):

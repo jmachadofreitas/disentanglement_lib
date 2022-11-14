@@ -34,8 +34,6 @@ from tensorflow.compat.v1.estimator import tpu
 import gin.tf
 
 
-
-
 class BaseVAE(gaussian_encoder_model.GaussianEncoderModel):
   """Abstract base class of a basic Gaussian encoder model."""
 
@@ -66,8 +64,8 @@ class BaseVAE(gaussian_encoder_model.GaussianEncoderModel):
           "loss": loss,
           "reconstruction_loss": reconstruction_loss,
           "elbo": -elbo
-      },
-                                                every_n_iter=100)
+      }, every_n_iter=100)
+
       return tpu.TPUEstimatorSpec(
           mode=mode,
           loss=loss,
@@ -100,7 +98,6 @@ class BaseVAE(gaussian_encoder_model.GaussianEncoderModel):
     """Decodes the latent_tensor to an observation."""
     return architectures.make_decoder(
         latent_tensor, observation_shape, is_training=is_training)
-
 
 def shuffle_codes(z):
   """Shuffles latent variables across the batch.

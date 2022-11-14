@@ -120,6 +120,7 @@ def perfect_labeller(labels, dataset, random_state):
   Returns:
     labels: True observations of the factors of variations without artifacts.
       Numpy array of shape (num_labelled_samples, num_factors) of Float32.
+    factor_sizes: number of values of each factor
   """
   del random_state
   labels = np.float32(labels)

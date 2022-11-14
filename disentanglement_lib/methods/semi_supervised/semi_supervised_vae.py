@@ -90,8 +90,8 @@ class BaseS2VAE(vae.BaseVAE):
           "reconstruction_loss": reconstruction_loss,
           "elbo": -elbo,
           "supervised_loss": supervised_loss
-      },
-                                                every_n_iter=100)
+      }, every_n_iter=100)
+
       return TPUEstimatorSpec(
           mode=mode,
           loss=loss,
@@ -357,6 +357,118 @@ def supervised_regularizer_embed(representation, labels,
   return tf.reduce_sum(tf.add_n(loss))
 
 
+@gin.configurable("cvae")
+class CVAE(BaseS2VAE):
+  """A basic (Conditional) Gaussian encoder model"""
+
+  def __init__(self, factor_sizes, beta=gin.REQUIRED, c_type=gin.REQUIRED):
+    """Creates a CVAE model.
+
+    Implementing Eq. ...
+    (reference url).
+
+    Args:
+      beta: Hyperparameter for the regularizer.
+      c_type: "num" or "nom".
+    Returns:
+      CVAE
+    """
+    self.beta = beta
+    # Type of the conditional variable (categorical or numeric)
+    self.c_type = c_type
+    super(CVAE, self).__init__(factor_sizes)
+
+  def model_fn(self, features, labels, mode, params):
+    """TPUEstimator compatible model function.
+
+    Args:
+      features: Batch of images [batch_size, 64, 64, 3].
+      labels: Tuple with batch of features [batch_size, 64, 64, 3] and the
+        labels [batch_size, labels_size].
+      mode: Mode for the TPUEstimator.
+      params: Dict with parameters.
+
+    Returns:
+      TPU estimator.
+    """
+
+    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    labelled_features = labels[0]
+    labels = tf.to_float(labels[1])
+    data_shape = features.get_shape().as_list()[1:]
+
+    for idx, factor_size in enumerate(self.factor_sizes):
+      if self.c_type == 'nom':
+        labels = tf.one_hot(tf.to_int32(labels[:, idx]), factor_size)
+        # one_hot_labels = tf.one_hot(labels, max(labels))
+
+      # TODO:
+      if len(data_shape) < 3:
+        # Create channel for conditional variable
+        xc = tf.concat([labelled_features, labels])
+      elif data_shape[:-2] > 64:
+        # If width bigger than 64 px (chairs dataset), then do not flatten
+        # Create channel for conditional variable
+        labels = labels[:, :, None, None]
+        labels = labels.repeat(1, 1, data_shape[1], data_shape[2])
+      else:
+        # If width is smaller than 64 (dSprites or MNIST), then flatten image
+        x = tf.reshape(labelled_features, [-1])
+      xc = tf.concat((labelled_features.float(), labels.float()), dim=1)
+
+    # TODO:
+    # with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+    #   z_mean, z_logvar = self.gaussian_encoder(
+    #       features, is_training=is_training)
+    #   z_mean_labelled, _ = self.gaussian_encoder(
+    #       labelled_features, is_training=is_training)
+    # z_sampled = self.sample_from_latent_distribution(z_mean, z_logvar)
+    # reconstructions = self.decode(z_sampled, data_shape, is_training)
+    # per_sample_loss = losses.make_reconstruction_loss(features, reconstructions)
+    # reconstruction_loss = tf.reduce_mean(per_sample_loss)
+    # kl_loss = compute_gaussian_kl(z_mean, z_logvar)
+    # gamma_annealed = make_annealer(self.gamma_sup, tf.train.get_global_step())
+    # supervised_loss = make_supervised_loss(z_mean_labelled, labels,
+    #                                        self.factor_sizes)
+    # regularizer = self.unsupervised_regularizer(
+    #     kl_loss, z_mean, z_logvar, z_sampled) + gamma_annealed * supervised_loss
+    # loss = tf.add(reconstruction_loss, regularizer, name="loss")
+    # elbo = tf.add(reconstruction_loss, kl_loss, name="elbo")
+    # if mode == tf.estimator.ModeKeys.TRAIN:
+    #   optimizer = optimizers.make_vae_optimizer()
+    #   update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    #   train_op = optimizer.minimize(
+    #       loss=loss, global_step=tf.train.get_global_step())
+    #   train_op = tf.group([train_op, update_ops])
+    #   tf.summary.scalar("reconstruction_loss", reconstruction_loss)
+    #   tf.summary.scalar("elbo", -elbo)
+    #
+    #   logging_hook = tf.train.LoggingTensorHook({
+    #       "loss": loss,
+    #       "reconstruction_loss": reconstruction_loss,
+    #       "elbo": -elbo,
+    #       "supervised_loss": supervised_loss
+    #   }, every_n_iter=100)
+    #
+    #   return TPUEstimatorSpec(
+    #       mode=mode,
+    #       loss=loss,
+    #       train_op=train_op,
+    #       training_hooks=[logging_hook])
+    # elif mode == tf.estimator.ModeKeys.EVAL:
+    #   return TPUEstimatorSpec(
+    #       mode=mode,
+    #       loss=loss,
+    #       eval_metrics=(make_metric_fn("reconstruction_loss", "elbo",
+    #                                    "regularizer", "kl_loss",
+    #                                    "supervised_loss"), [
+    #                                        reconstruction_loss, -elbo,
+    #                                        regularizer, kl_loss, supervised_loss
+    #                                    ]))
+    # else:
+    #   raise NotImplementedError("Eval mode not supported.")
+
+
 @gin.configurable("s2_vae")
 class S2BetaVAE(BaseS2VAE):
   """Semi-supervised BetaVAE model."""
@@ -451,6 +563,70 @@ class SupervisedVAE(BaseS2VAE):
     else:
       raise NotImplementedError("Eval mode not supported.")
 
+
+@gin.configurable("ffvae")
+class FFVAE(BaseS2VAE):
+  """Fully supervised Flexibly Fair Autoencoder (FFVAE)."""
+
+  def model_fn(self, features, labels, mode, params):
+    """TPUEstimator compatible model function.
+
+    Args:
+      features: Batch of images [batch_size, 64, 64, 3].
+      labels: Tuple with batch of features [batch_size, 64, 64, 3] and the
+        labels [batch_size, labels_size].
+      mode: Mode for the TPUEstimator.
+      params: Dict with parameters.
+
+    Returns:
+      TPU Estimator.
+    """
+    # TODO: See FactorVAE
+    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    labelled_features = labels[0]
+    labels = tf.to_float(labels[1])
+    data_shape = features.get_shape().as_list()[1:]
+    with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+      z_mean, z_logvar = self.gaussian_encoder(
+          features, is_training=is_training)
+      z_mean_labelled, _ = self.gaussian_encoder(
+          labelled_features, is_training=is_training)
+    z_sampled = self.sample_from_latent_distribution(z_mean, z_logvar)
+    reconstructions = self.decode(
+        tf.stop_gradient(z_sampled), data_shape, is_training)
+    per_sample_loss = losses.make_reconstruction_loss(features, reconstructions)
+    reconstruction_loss = tf.reduce_mean(per_sample_loss)
+    supervised_loss = make_supervised_loss(z_mean_labelled, labels, self.factor_sizes)
+    regularizer = supervised_loss
+    loss = tf.add(reconstruction_loss, regularizer, name="loss")
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      optimizer = optimizers.make_vae_optimizer()
+      update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+      train_op = optimizer.minimize(
+          loss=loss, global_step=tf.train.get_global_step())
+      train_op = tf.group([train_op, update_ops])
+      tf.summary.scalar("reconstruction_loss", reconstruction_loss)
+
+      logging_hook = tf.train.LoggingTensorHook({
+          "loss": loss,
+          "reconstruction_loss": reconstruction_loss,
+          "supervised_loss": supervised_loss
+      },
+                                                every_n_iter=100)
+      return TPUEstimatorSpec(
+          mode=mode,
+          loss=loss,
+          train_op=train_op,
+          training_hooks=[logging_hook])
+    elif mode == tf.estimator.ModeKeys.EVAL:
+      return TPUEstimatorSpec(
+          mode=mode,
+          loss=loss,
+          eval_metrics=(make_metric_fn("reconstruction_loss", "regularizer",
+                                       "supervised_loss"),
+                        [reconstruction_loss, regularizer, supervised_loss]))
+    else:
+      raise NotImplementedError("Eval mode not supported.")
 
 def mine(x, z, name_net="estimator_network"):
   """Computes I(X, Z).
@@ -751,3 +927,28 @@ class S2BetaTCVAE(BaseS2VAE):
   def unsupervised_regularizer(self, kl_loss, z_mean, z_logvar, z_sampled):
     tc = (self.beta - 1.) * vae.total_correlation(z_sampled, z_mean, z_logvar)
     return tc + kl_loss
+
+
+# @gin.configurable("vpf")
+# class VPF(BaseS2VAE):
+#   """Unsupervised VPF model."""
+#
+#   def __init__(self, factor_sizes, beta=gin.REQUIRED, gamma_sup=gin.REQUIRED):
+#     """Creates a VPF model.
+#
+#     Based on Equation X with alpha = gamma = 1 of "Paper title"
+#     (https://arxiv.org/pdf/####).
+#     If alpha = gamma = 1, Eq. X can be written as ELBO + ...
+#
+#     Args:
+#       factor_sizes: Size of each factor of variation.
+#       beta: Hyperparameter total correlation.
+#       gamma_sup: Hyperparameter for the supervised regularizer.
+#     """
+#     self.beta = beta
+#     self.gamma_sup = gamma_sup
+#     super(VPF, self).__init__(factor_sizes)
+#
+#   def unsupervised_regularizer(self, kl_loss, z_mean, z_logvar, z_sampled):
+#     tc = (self.beta - 1.) * vae.total_correlation(z_sampled, z_mean, z_logvar)
+#     return tc + kl_loss

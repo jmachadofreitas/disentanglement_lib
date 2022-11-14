@@ -110,7 +110,7 @@ def train(model_dir,
    factor_sizes) = semi_supervised_utils.sample_supervised_data(
        supervised_data_seed, dataset, num_labelled_samples)
   # We instantiate the model class.
-  if  issubclass(model, semi_supervised_vae.BaseS2VAE):
+  if issubclass(model, semi_supervised_vae.BaseS2VAE):
     model = model(factor_sizes)
   else:
     model = model()
